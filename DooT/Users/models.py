@@ -1,12 +1,12 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin
 from .managers import UserManager
 from .utils import to_lowercase
 
 # Create your models here.
 
 
-class User(AbstractBaseUser):
+class User(AbstractBaseUser,PermissionsMixin):
     name = models.CharField(max_length=255,validators=[to_lowercase])
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15)
@@ -52,7 +52,6 @@ class SellerProfile(models.Model):
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
     total_orders = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

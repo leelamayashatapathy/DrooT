@@ -78,7 +78,7 @@ const Header: React.FC = () => {
             </Link>
             {sellerProfile && (
               <Link
-                to="/seller"
+                to="/seller/dashboard"
                 className={`text-sm font-medium transition-colors ${
                   isActive('/seller') 
                     ? 'text-primary-600' 
@@ -168,12 +168,22 @@ const Header: React.FC = () => {
                     </Link>
                     {!sellerProfile && (
                       <Link
-                        to="/profile"
+                        to="/seller/profile/create"
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
                         <Store className="h-4 w-4 mr-3" />
                         Become a Seller
+                      </Link>
+                    )}
+                    {sellerProfile && (
+                      <Link
+                        to="/seller/products/add"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Package className="h-4 w-4 mr-3" />
+                        Add Product
                       </Link>
                     )}
                     <button
@@ -199,6 +209,12 @@ const Header: React.FC = () => {
                   className="btn-primary btn-sm"
                 >
                   Sign Up
+                </Link>
+                <Link
+                  to="/seller/register"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  Sell on MarketPlace
                 </Link>
               </div>
             )}
@@ -262,7 +278,7 @@ const Header: React.FC = () => {
             </Link>
             {sellerProfile && (
               <Link
-                to="/seller"
+                to="/seller/dashboard"
                 className={`block px-3 py-2 rounded-md text-base font-medium ${
                   isActive('/seller') 
                     ? 'text-primary-600 bg-primary-50' 
@@ -271,6 +287,15 @@ const Header: React.FC = () => {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Seller Dashboard
+              </Link>
+            )}
+            {!sellerProfile && isAuthenticated && (
+              <Link
+                to="/seller/register"
+                className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Become a Seller
               </Link>
             )}
             {user?.is_staff && (

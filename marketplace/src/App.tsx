@@ -9,6 +9,7 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import SellerRegistrationPage from './pages/auth/SellerRegistrationPage';
 import ProductListPage from './pages/products/ProductListPage';
 import ProductDetailPage from './pages/products/ProductDetailPage';
 import CartPage from './pages/cart/CartPage';
@@ -16,6 +17,8 @@ import CheckoutPage from './pages/checkout/CheckoutPage';
 import UserProfilePage from './pages/user/UserProfilePage';
 import UserOrdersPage from './pages/user/UserOrdersPage';
 import SellerDashboardPage from './pages/seller/SellerDashboardPage';
+import AddProductPage from './pages/seller/AddProductPage';
+import CreateSellerProfilePage from './pages/seller/CreateSellerProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -41,6 +44,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/seller/register" element={<SellerRegistrationPage />} />
               <Route path="/products" element={<ProductListPage />} />
               <Route path="/products/:id" element={<ProductDetailPage />} />
               
@@ -67,9 +71,24 @@ function App() {
               } />
               
               {/* Protected Seller Routes */}
-              <Route path="/seller/*" element={
+              <Route path="/seller" element={
                 <ProtectedRoute requireSeller>
                   <SellerDashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/seller/dashboard" element={
+                <ProtectedRoute requireSeller>
+                  <SellerDashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/seller/products/add" element={
+                <ProtectedRoute requireSeller>
+                  <AddProductPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/seller/profile/create" element={
+                <ProtectedRoute>
+                  <CreateSellerProfilePage />
                 </ProtectedRoute>
               } />
               

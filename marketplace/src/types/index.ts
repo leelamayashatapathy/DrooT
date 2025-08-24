@@ -7,6 +7,8 @@ export interface User {
   phone_number?: string;
   is_verified: boolean;
   is_active: boolean;
+  is_staff?: boolean;
+  is_admin?: boolean;
   date_joined: string;
   last_login?: string;
   avatar?: string;
