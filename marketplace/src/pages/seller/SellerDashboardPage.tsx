@@ -17,13 +17,40 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import sellerService from '../../services/sellerService';
-import { SellerDashboardStats, SellerOrderSummary, SellerProductSummary } from '../../services/sellerService';
+
+interface DashboardStats {
+  total_products: number;
+  total_orders: number;
+  total_revenue: number;
+  pending_orders: number;
+  average_rating?: number;
+  low_stock_products?: number;
+}
+
+interface DashboardOrderSummary {
+  id: number;
+  order_number: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  customer_name?: string;
+}
+
+interface DashboardProductSummary {
+  id: number;
+  name: string;
+  current_price: number;
+  average_rating: number;
+  total_reviews: number;
+  stock_quantity: number;
+  status: string;
+}
 
 const SellerDashboardPage: React.FC = () => {
   const { sellerProfile } = useAuthStore();
-  const [stats, setStats] = useState<SellerDashboardStats | null>(null);
-  const [recentOrders, setRecentOrders] = useState<SellerOrderSummary[]>([]);
-  const [recentProducts, setRecentProducts] = useState<SellerProductSummary[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentOrders, setRecentOrders] = useState<DashboardOrderSummary[]>([]);
+  const [recentProducts, setRecentProducts] = useState<DashboardProductSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -32,15 +59,29 @@ const SellerDashboardPage: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      const [statsData, ordersData, productsData] = await Promise.all([
-        sellerService.getDashboardStats(),
-        sellerService.getSellerOrders(1, undefined),
-        sellerService.getSellerProductsSummary(1, undefined),
-      ]);
+      const data = await sellerService.getDashboard();
+      // Map quick_stats to our local stats shape, with safe fallbacks
+      const mappedStats: DashboardStats = {
+        total_products: data?.quick_stats?.total_products ?? 0,
+        total_orders: data?.quick_stats?.total_orders ?? 0,
+        total_revenue: data?.quick_stats?.total_revenue ?? 0,
+        pending_orders: data?.quick_stats?.pending_orders ?? 0,
+        average_rating: 0,
+        low_stock_products: 0,
+      };
 
-      setStats(statsData);
-      setRecentOrders(ordersData.results.slice(0, 5));
-      setRecentProducts(productsData.results.slice(0, 5));
+      setStats(mappedStats);
+      setRecentOrders((data?.recent_orders || []).slice(0, 5));
+      const mappedProducts: DashboardProductSummary[] = (data?.recent_products || []).slice(0, 5).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        current_price: Number(p.current_price ?? p.base_price ?? 0),
+        average_rating: Number(p.average_rating ?? 0),
+        total_reviews: Number(p.total_reviews ?? 0),
+        stock_quantity: Number(p.stock_quantity ?? 0),
+        status: String(p.status ?? 'pending'),
+      }));
+      setRecentProducts(mappedProducts);
     } catch (error) {
       toast.error('Failed to load dashboard data');
     } finally {
@@ -116,9 +157,9 @@ const SellerDashboardPage: React.FC = () => {
                 <Star className="h-6 w-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Average Rating</p>
+                <p className="text-sm font-medium text-gray-600">Pending Orders</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {stats?.average_rating?.toFixed(1) || '0.0'}
+                  {stats?.pending_orders ?? 0}
                 </p>
               </div>
             </div>
@@ -182,7 +223,9 @@ const SellerDashboardPage: React.FC = () => {
                     <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900">#{order.order_number}</p>
-                        <p className="text-sm text-gray-600">{order.customer_name}</p>
+                        {order.customer_name && (
+                          <p className="text-sm text-gray-600">{order.customer_name}</p>
+                        )}
                         <p className="text-xs text-gray-500">
                           {new Date(order.created_at).toLocaleDateString()}
                         </p>
@@ -236,7 +279,7 @@ const SellerDashboardPage: React.FC = () => {
                         <div className="flex items-center mt-1">
                           <Star className="h-4 w-4 text-yellow-400 fill-current" />
                           <span className="text-xs text-gray-600 ml-1">
-                            {product.average_rating.toFixed(1)} ({product.total_reviews})
+                            {Number(product.average_rating || 0).toFixed(1)} ({product.total_reviews || 0})
                           </span>
                         </div>
                       </div>
@@ -245,7 +288,7 @@ const SellerDashboardPage: React.FC = () => {
                           Stock: {product.stock_quantity}
                         </p>
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          product.status === 'active' ? 'bg-green-100 text-green-800' :
+                          product.status === 'approved' ? 'bg-green-100 text-green-800' :
                           product.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                           product.status === 'draft' ? 'bg-gray-100 text-gray-800' :
                           'bg-red-100 text-red-800'
@@ -271,7 +314,7 @@ const SellerDashboardPage: React.FC = () => {
         <div className="mt-8">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Alerts & Notifications</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stats?.pending_orders > 0 && (
+            {stats && stats.pending_orders > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex items-center">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3" />
@@ -285,7 +328,7 @@ const SellerDashboardPage: React.FC = () => {
               </div>
             )}
 
-            {stats?.low_stock_products > 0 && (
+            {stats && stats.low_stock_products && stats.low_stock_products > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-center">
                   <Package className="h-5 w-5 text-red-600 mr-3" />

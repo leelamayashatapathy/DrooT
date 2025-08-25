@@ -16,7 +16,11 @@ class AuthService {
   // Login user
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     const response = await api.post('/auth/login/', credentials);
-    return response.data;
+    const data = response.data as any;
+    const access = data?.access ?? data?.tokens?.access;
+    const refresh = data?.refresh ?? data?.tokens?.refresh;
+    const user = data?.user;
+    return { access, refresh, user } as LoginResponse;
   }
 
   // Register user
@@ -30,7 +34,7 @@ class AuthService {
     try {
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
-        await api.post('/auth/logout/', { refresh: refreshToken });
+        await api.post('/auth/logout/', { refresh_token: refreshToken });
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -59,13 +63,13 @@ class AuthService {
     new_password: string;
     new_password_confirm: string;
   }): Promise<{ message: string }> {
-    const response = await api.post('/auth/change-password/', passwordData);
+    const response = await api.post('/auth/password/change/', passwordData);
     return response.data;
   }
 
   // Request password reset
   async requestPasswordReset(email: string): Promise<{ message: string }> {
-    const response = await api.post('/auth/password-reset/', { email });
+    const response = await api.post('/auth/password/reset/', { email });
     return response.data;
   }
 
@@ -75,7 +79,7 @@ class AuthService {
     new_password: string,
     new_password_confirm: string
   ): Promise<{ message: string }> {
-    const response = await api.post('/auth/password-reset/confirm/', {
+    const response = await api.post('/auth/password/reset/confirm/', {
       token,
       new_password,
       new_password_confirm,
@@ -104,7 +108,7 @@ class AuthService {
     business_email?: string;
     business_website?: string;
   }): Promise<any> {
-    const response = await api.post('/sellers/create/', sellerData);
+    const response = await api.post('/sellers/profile/', sellerData);
     return response.data;
   }
 

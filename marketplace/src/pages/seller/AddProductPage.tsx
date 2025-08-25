@@ -59,7 +59,7 @@ const AddProductPage: React.FC = () => {
 
   useEffect(() => {
     if (watchedImages) {
-      const urls = Array.from(watchedImages).map(file => URL.createObjectURL(file));
+      const urls = Array.from(watchedImages as any).map((file: File) => URL.createObjectURL(file));
       setImagePreviewUrls(urls);
       return () => urls.forEach(url => URL.revokeObjectURL(url));
     }
@@ -71,21 +71,23 @@ const AddProductPage: React.FC = () => {
         productService.getCategories(),
         productService.getBrands(),
       ]);
-      setCategories(categoriesData);
-      setBrands(brandsData);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      setBrands(Array.isArray(brandsData) ? brandsData : []);
     } catch (error) {
+      setCategories([]);
+      setBrands([]);
       toast.error('Failed to load form data');
     }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setValue('images', files);
+    setValue('images', files as any);
   };
 
   const removeImage = (index: number) => {
-    const currentImages = watch('images');
-    const newImages = currentImages.filter((_, i) => i !== index);
+    const currentImages = (watch('images') as any) || [];
+    const newImages = currentImages.filter((_: any, i: number) => i !== index);
     setValue('images', newImages);
   };
 
@@ -105,7 +107,6 @@ const AddProductPage: React.FC = () => {
   const onSubmit = async (data: AddProductForm) => {
     setIsLoading(true);
     try {
-      // Create product first
       const productData: CreateProductData = {
         name: data.name,
         description: data.description,
@@ -128,7 +129,7 @@ const AddProductPage: React.FC = () => {
       const product = await productService.createProduct(productData);
 
       // Add variants if any
-      if (data.variants.length > 0) {
+      if (data.variants && data.variants.length > 0) {
         for (const variant of data.variants) {
           if (variant.name && variant.value) {
             await productService.addProductVariant(product.id, variant);
@@ -137,7 +138,7 @@ const AddProductPage: React.FC = () => {
       }
 
       // Add images if any
-      if (data.images.length > 0) {
+      if (data.images && data.images.length > 0) {
         for (let i = 0; i < data.images.length; i++) {
           const imageData: CreateProductImageData = {
             image: data.images[i],
@@ -152,7 +153,7 @@ const AddProductPage: React.FC = () => {
       toast.success('Product created successfully!');
       navigate('/seller/products');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to create product';
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to create product';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -207,7 +208,7 @@ const AddProductPage: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select category</option>
-                  {categories.map((category) => (
+                  {(categories || []).map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
@@ -323,7 +324,7 @@ const AddProductPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text sm font-medium text-gray-700 mb-2">
                   Min Stock Alert
                 </label>
                 <input
@@ -368,7 +369,7 @@ const AddProductPage: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select brand</option>
-                  {brands.map((brand) => (
+                  {(brands || []).map((brand) => (
                     <option key={brand.id} value={brand.id}>
                       {brand.name}
                     </option>

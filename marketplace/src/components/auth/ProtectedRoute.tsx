@@ -39,10 +39,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check if user needs to be a seller
-  if (requireSeller && (!isAuthenticated || !sellerProfile)) {
+  if (requireSeller) {
+    // If authenticated and explicitly marked as seller, allow even if sellerProfile hasn't loaded yet
+    if (isAuthenticated && user?.is_seller) {
+      return <>{children}</>;
+    }
+    // If not authenticated, go to login
     if (!isAuthenticated) {
       return <Navigate to="/login" state={{ from: location }} replace />;
     }
+    // If authenticated but no seller profile and not marked seller yet, redirect to create profile
     if (!sellerProfile) {
       return <Navigate to="/seller/profile/create" state={{ from: location }} replace />;
     }

@@ -101,16 +101,18 @@ class ProductService {
     return response.data;
   }
 
-  // Get categories
+  // Get categories (paginated)
   async getCategories(): Promise<Category[]> {
     const response = await api.get('/products/categories/');
-    return response.data;
+    const data = response.data as any;
+    return Array.isArray(data) ? data : (data?.results ?? []);
   }
 
-  // Get brands
+  // Get brands (paginated)
   async getBrands(): Promise<Brand[]> {
     const response = await api.get('/products/brands/');
-    return response.data;
+    const data = response.data as any;
+    return Array.isArray(data) ? data : (data?.results ?? []);
   }
 
   // Get products by category
@@ -168,7 +170,7 @@ class ProductService {
     await api.delete(`/products/${productId}/reviews/${reviewId}/`);
   }
 
-  // Seller: Create product
+  // Seller: Create product (matches backend /products/create/)
   async createProduct(productData: CreateProductData): Promise<Product> {
     const formData = new FormData();
     
@@ -182,15 +184,15 @@ class ProductService {
       }
     });
     
-    const response = await api.post('/products/', formData, {
+    const response = await api.post('/products/create/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return response.data?.product ?? response.data;
   }
 
-  // Seller: Update product
+  // Seller: Update product (matches backend /products/update/<id>/)
   async updateProduct(productData: UpdateProductData): Promise<Product> {
     const { id, ...data } = productData;
     const formData = new FormData();
@@ -205,46 +207,36 @@ class ProductService {
       }
     });
     
-    const response = await api.put(`/products/${id}/`, formData, {
+    const response = await api.put(`/products/update/${id}/`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return response.data?.product ?? response.data;
   }
 
-  // Seller: Delete product
+  // Seller: Delete product (matches backend /products/delete/<id>/)
   async deleteProduct(productId: number): Promise<void> {
-    await api.delete(`/products/${productId}/`);
+    await api.delete(`/products/delete/${productId}/`);
   }
 
-  // Seller: Get seller products
+  // Seller: Get seller products (matches backend /products/seller/products/)
   async getSellerProducts(page: number = 1): Promise<ProductListResponse> {
-    const response = await api.get(`/products/seller/?page=${page}`);
+    const response = await api.get(`/products/seller/products/?page=${page}`);
     return response.data;
   }
 
-  // Seller: Add product variant
+  // Seller: Add product variant (matches backend /products/<id>/variants/create/)
   async addProductVariant(productId: number, variantData: CreateProductVariantData): Promise<any> {
-    const response = await api.post(`/products/${productId}/variants/`, variantData);
+    const response = await api.post(`/products/${productId}/variants/create/`, variantData);
     return response.data;
   }
 
-  // Seller: Update product variant
-  async updateProductVariant(productId: number, variantId: number, variantData: Partial<CreateProductVariantData>): Promise<any> {
-    const response = await api.put(`/products/${productId}/variants/${variantId}/`, variantData);
-    return response.data;
-  }
-
-  // Seller: Delete product variant
-  async deleteProductVariant(productId: number, variantId: number): Promise<void> {
-    await api.delete(`/products/${productId}/variants/${variantId}/`);
-  }
-
-  // Seller: Add product image
+  // Seller: Add product image (backend expects 'images' list at /products/<id>/images/)
   async addProductImage(productId: number, imageData: CreateProductImageData): Promise<any> {
     const formData = new FormData();
-    formData.append('image', imageData.image);
+    // Send as a single-item list to satisfy backend getlist('images')
+    formData.append('images', imageData.image);
     if (imageData.alt_text) formData.append('alt_text', imageData.alt_text);
     if (imageData.is_primary !== undefined) formData.append('is_primary', imageData.is_primary.toString());
     if (imageData.order !== undefined) formData.append('order', imageData.order.toString());
@@ -255,28 +247,6 @@ class ProductService {
       },
     });
     return response.data;
-  }
-
-  // Seller: Update product image
-  async updateProductImage(productId: number, imageId: number, imageData: Partial<CreateProductImageData>): Promise<any> {
-    const formData = new FormData();
-    
-    if (imageData.image) formData.append('image', imageData.image);
-    if (imageData.alt_text !== undefined) formData.append('alt_text', imageData.alt_text);
-    if (imageData.is_primary !== undefined) formData.append('is_primary', imageData.is_primary.toString());
-    if (imageData.order !== undefined) formData.append('order', imageData.order.toString());
-    
-    const response = await api.put(`/products/${productId}/images/${imageId}/`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  }
-
-  // Seller: Delete product image
-  async deleteProductImage(productId: number, imageId: number): Promise<void> {
-    await api.delete(`/products/${productId}/images/${imageId}/`);
   }
 
   // Seller: Update product status

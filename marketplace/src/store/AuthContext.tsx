@@ -23,7 +23,7 @@ const useAuthStore = create<AuthStore>()(
       user: null,
       sellerProfile: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true,
       error: null,
 
       login: async (email: string, password: string) => {
@@ -32,21 +32,20 @@ const useAuthStore = create<AuthStore>()(
           const response = await authService.login({ email, password });
           authService.storeUserData(response.user, response.access, response.refresh);
           
+          // Set user and auth but keep loading until seller profile is fetched
           set({
             user: response.user,
             isAuthenticated: true,
-            isLoading: false,
             error: null,
           });
 
-          // Try to get seller profile if user is authenticated
           try {
             await get().getSellerProfile();
           } catch (error) {
-            // User might not have a seller profile yet
             console.log('No seller profile found');
           }
 
+          set({ isLoading: false });
           toast.success('Login successful!');
           return true;
         } catch (error: any) {
@@ -181,20 +180,22 @@ const useAuthStore = create<AuthStore>()(
       },
 
       initializeAuth: async () => {
+        // Keep loading until seller profile fetch (if any) completes
+        set({ isLoading: true });
         const storedUser = authService.getStoredUser();
         if (storedUser && authService.isAuthenticated()) {
           set({
             user: storedUser,
             isAuthenticated: true,
-            isLoading: false,
           });
 
-          // Try to get seller profile
           try {
             await get().getSellerProfile();
           } catch (error) {
             console.log('No seller profile found');
           }
+
+          set({ isLoading: false });
         } else {
           set({
             user: null,

@@ -13,9 +13,8 @@ urlpatterns = [
     # Products
     path('', views.ProductListView.as_view(), name='product-list'),
     path('search/', views.ProductSearchView.as_view(), name='product-search'),
-    path('<slug:slug>/', views.ProductDetailView.as_view(), name='product-detail'),
-    
-    # Seller Product Management
+
+    # Seller Product Management (place before slug route to avoid conflicts)
     path('create/', views.ProductCreateView.as_view(), name='product-create'),
     path('update/<int:pk>/', views.ProductUpdateView.as_view(), name='product-update'),
     path('delete/<int:pk>/', views.ProductDeleteView.as_view(), name='product-delete'),
@@ -29,6 +28,9 @@ urlpatterns = [
     # Reviews
     path('<int:product_id>/reviews/', views.ProductReviewListView.as_view(), name='product-reviews'),
     path('<int:product_id>/reviews/create/', views.ProductReviewCreateView.as_view(), name='product-review-create'),
+
+    # Slug route must be last to prevent shadowing other routes
+    path('<slug:slug>/', views.ProductDetailView.as_view(), name='product-detail'),
     
     # Admin Actions
     path('admin/<int:product_id>/toggle-featured/', views.toggle_product_featured, name='toggle-featured'),

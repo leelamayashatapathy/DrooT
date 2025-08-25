@@ -17,6 +17,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import sellerService from '../../services/sellerService';
+import { useAuthStore } from '../../store/AuthContext';
 
 interface SellerRegistrationForm {
   email: string;
@@ -133,9 +134,16 @@ const SellerRegistrationPage: React.FC = () => {
 
       const response = await sellerService.registerSeller(sellerData);
       
-      localStorage.setItem('access_token', response.access);
-      localStorage.setItem('refresh_token', response.refresh);
+      localStorage.setItem('access_token', response.access ?? response.tokens?.access);
+      localStorage.setItem('refresh_token', response.refresh ?? response.tokens?.refresh);
       localStorage.setItem('user', JSON.stringify(response.user));
+
+      // Update auth store so protected routes pass immediately
+      useAuthStore.setState({
+        user: response.user,
+        isAuthenticated: true,
+        sellerProfile: response.seller_profile ?? null,
+      });
       
       toast.success('Seller registration successful! Welcome to our marketplace.');
       navigate('/seller/dashboard');
