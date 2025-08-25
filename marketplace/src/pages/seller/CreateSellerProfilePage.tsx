@@ -392,3 +392,4 @@ const CreateSellerProfilePage: React.FC = () => {
 
 export default CreateSellerProfilePage;
 
+

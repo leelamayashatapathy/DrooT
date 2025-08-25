@@ -393,3 +393,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **Note**: This frontend is designed to work with the Django backend API. Ensure the backend is properly configured and running before testing the frontend functionality.
 
+

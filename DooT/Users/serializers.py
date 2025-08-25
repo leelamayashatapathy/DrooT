@@ -63,8 +63,10 @@ class SellerProfileCreateSerializer(serializers.ModelSerializer):
                  'country', 'zip_code', 'phone', 'profile_image']
     
     def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
-        return super().create(validated_data)
+        user = self.context.get("user")
+        if not user:
+            raise serializers.ValidationError("User must be provided for SellerProfile")
+        return SellerProfile.objects.create(user=user, **validated_data)
 
 class PasswordChangeSerializer(serializers.Serializer):
     old_password = serializers.CharField()

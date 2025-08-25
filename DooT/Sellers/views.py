@@ -5,8 +5,9 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Count, Sum
 from django.utils import timezone
 from datetime import timedelta
+from rest_framework_simplejwt.tokens import RefreshToken
 from Users.models import SellerProfile
-from Users.serializers import SellerProfileSerializer, SellerProfileCreateSerializer
+from Users.serializers import SellerProfileSerializer, SellerProfileCreateSerializer,UserRegistrationSerializer
 from .serializers import SellerDashboardSerializer, SellerAnalyticsSerializer
 from Products.models import Product
 from Orders.models import Order
@@ -15,26 +16,54 @@ class SellerRegisterView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def post(self, request):
+        user_data = request.data.get("user")
+        print(user_data)
+        seller_data = request.data.get("seller_profile")
         # Check if user already has a seller profile
         if hasattr(request.user, 'seller_profile'):
             return Response(
                 {'error': 'User already has a seller profile'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        user_serializer = UserRegistrationSerializer(data=user_data)
+        print(user_serializer)
+        if not user_serializer.is_valid():
+            print(user_serializer.errors)
+            return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user = user_serializer.save()
+        user.is_seller = True
+        user.save()
+        print(user)
+        # Step 2: Create Seller Profile
+        seller_serializer = SellerProfileCreateSerializer(
+            data=seller_data, context={"request": request, "user": user}
+        )
+        if not seller_serializer.is_valid():
+            user.delete()  # rollback user if seller profile invalid
+            return Response(seller_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        serializer = SellerProfileCreateSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            seller_profile = serializer.save()
-            
-            # Update user to be a seller
-            request.user.is_seller = True
-            request.user.save()
-            
-            return Response(
-                SellerProfileSerializer(seller_profile).data,
-                status=status.HTTP_201_CREATED
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        seller_profile = seller_serializer.save()
+
+        # Step 3: Create JWT Tokens
+        refresh = RefreshToken.for_user(user)
+
+        return Response(
+            {
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": user.name,
+                    "phone": user.phone,
+                    "gender": user.gender,
+                    "is_seller": user.is_seller,
+                },
+                "seller_profile": SellerProfileSerializer(seller_profile).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 class SellerProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]

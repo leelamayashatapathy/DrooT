@@ -190,3 +190,4 @@ class ShippingService {
 }
 
 export default new ShippingService();
+

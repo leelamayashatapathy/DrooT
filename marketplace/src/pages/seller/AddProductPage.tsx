@@ -651,3 +651,4 @@ const AddProductPage: React.FC = () => {
 
 export default AddProductPage;
 
+
