@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { Grid, Search, Star, Heart, ShoppingCart } from 'lucide-react';
 import productService from '../../services/productService';
@@ -8,19 +8,23 @@ import { Product } from '../../types';
 
 const ProductListPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [location.search]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
+      const params = new URLSearchParams(location.search);
+      const category = params.get('category') || undefined;
       const response = await productService.getProducts({
         search: searchTerm || undefined,
+        category,
       });
       setProducts(response.results);
     } catch (error: any) {
@@ -158,11 +162,11 @@ const ProductListPage: React.FC = () => {
                 {/* Price */}
                 <div className="flex items-center mb-3">
                   <span className="text-lg font-semibold text-gray-900">
-                    ${product.price.toFixed(2)}
+                    ₹{product.price.toFixed(2)}
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm text-gray-500 line-through ml-2">
-                      ${product.compare_price.toFixed(2)}
+                      ₹{product.compare_price.toFixed(2)}
                     </span>
                   )}
                 </div>

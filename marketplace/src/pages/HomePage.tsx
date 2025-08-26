@@ -15,14 +15,16 @@ import {
   Eye
 } from 'lucide-react';
 import productService from '../services/productService';
-import { Product } from '../types';
+import { Product, Category } from '../types';
 
 const HomePage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [dealsOfTheDay, setDealsOfTheDay] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
 
   // Hero Banner Images
   const bannerImages = [
@@ -43,6 +45,7 @@ const HomePage: React.FC = () => {
   // Load products from backend
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
 
   const loadProducts = async () => {
@@ -64,17 +67,21 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Categories with Flipkart-style icons
-  const categories = [
-    { name: "Electronics", icon: "🔌", count: 1250, color: "bg-blue-500", link: "/products?category=electronics" },
-    { name: "Fashion", icon: "👕", count: 890, color: "bg-pink-500", link: "/products?category=fashion" },
-    { name: "Home & Garden", icon: "🏠", count: 650, color: "bg-green-500", link: "/products?category=home" },
-    { name: "Sports", icon: "⚽", count: 420, color: "bg-orange-500", link: "/products?category=sports" },
-    { name: "Books", icon: "📚", count: 780, color: "bg-purple-500", link: "/products?category=books" },
-    { name: "Beauty", icon: "💄", count: 340, color: "bg-red-500", link: "/products?category=beauty" },
-    { name: "Automotive", icon: "🚗", count: 280, color: "bg-gray-500", link: "/products?category=automotive" },
-    { name: "Toys", icon: "🧸", count: 190, color: "bg-yellow-500", link: "/products?category=toys" }
-  ];
+  const loadCategories = async () => {
+    setIsCategoriesLoading(true);
+    try {
+      const response: any = await productService.getCategories();
+      const list: Category[] = Array.isArray(response) ? response : (response?.results || []);
+      setCategories(list);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      toast.error('Failed to load categories');
+    } finally {
+      setIsCategoriesLoading(false);
+    }
+  };
+
+  // Categories Section previously hardcoded is now dynamic
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,25 +174,50 @@ const HomePage: React.FC = () => {
       <section className="py-8 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Shop by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            {categories.map((category, index) => (
-              <Link
-                key={index}
-                to={category.link}
-                className="group text-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100"
-              >
-                <div className={`w-16 h-16 ${category.color} rounded-full flex items-center justify-center text-2xl mx-auto mb-3 group-hover:scale-110 transition-transform`}>
-                  {category.icon}
+          {isCategoriesLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 animate-pulse">
+                  <div className="w-full h-16 bg-gray-300"></div>
+                  <div className="p-4">
+                    <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                    <div className="h-6 bg-gray-300 rounded mb-3"></div>
+                    <div className="h-10 bg-gray-300 rounded"></div>
+                  </div>
                 </div>
-                <h3 className="font-medium text-gray-900 mb-1 text-sm group-hover:text-blue-600 transition-colors">
-                  {category.name}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  {category.count.toLocaleString()}
-                </p>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : categories.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+              {categories.map((category, index) => (
+                <Link
+                  key={category.id}
+                  to={`/products?category=${category.id}`}
+                  className="group text-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100"
+                >
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden bg-gray-100 group-hover:scale-110 transition-transform">
+                    {category.image ? (
+                      <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-semibold text-gray-700">
+                        {category.name?.charAt(0) || 'C'}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-medium text-gray-900 mb-1 text-sm group-hover:text-blue-600 transition-colors">
+                    {category.name}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {category.product_count?.toLocaleString?.() || 0}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No categories available at the moment.</p>
+            </div>
+          )}
         </div>
       </section>
 
