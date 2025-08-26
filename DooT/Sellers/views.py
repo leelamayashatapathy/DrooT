@@ -102,28 +102,62 @@ class SellerDashboardView(APIView):
             
             # Get seller statistics
             total_products = Product.objects.filter(seller=seller_profile).count()
-            total_orders = Order.objects.filter(items__product__seller=seller_profile).distinct().count()
+            total_orders = Order.objects.filter(seller=seller_profile).count()
             pending_orders = Order.objects.filter(
-                items__product__seller=seller_profile,
+                seller=seller_profile,
                 status__in=['pending', 'processing']
-            ).distinct().count()
+            ).count()
             
             # Calculate total revenue
             total_revenue = Order.objects.filter(
-                items__product__seller=seller_profile,
-                status='completed'
+                seller=seller_profile,
+                status='delivered'
             ).aggregate(total=Sum('total_amount'))['total'] or 0
             
+            # Get recent orders
+            recent_orders = Order.objects.filter(
+                seller=seller_profile
+            ).order_by('-created_at')[:10]
+            
+            # Get recent products
+            recent_products = Product.objects.filter(
+                seller=seller_profile
+            ).order_by('-created_at')[:10]
+            
             dashboard_data = {
-                'profile': seller_profile,
-                'total_products': total_products,
-                'total_orders': total_orders,
-                'total_revenue': total_revenue,
-                'pending_orders': pending_orders
+                'quick_stats': {
+                    'total_products': total_products,
+                    'total_orders': total_orders,
+                    'total_revenue': float(total_revenue),
+                    'pending_orders': pending_orders
+                },
+                'recent_orders': [
+                    {
+                        'id': order.id,
+                        'order_number': order.order_number,
+                        'status': order.status,
+                        'total_amount': float(order.total_amount),
+                        'created_at': order.created_at.isoformat(),
+                        'customer_name': f"{order.user.first_name} {order.user.last_name}" if order.user.first_name else order.user.email
+                    }
+                    for order in recent_orders
+                ],
+                'recent_products': [
+                    {
+                        'id': product.id,
+                        'name': product.name,
+                        'current_price': float(product.sale_price or product.base_price),
+                        'base_price': float(product.base_price),
+                        'average_rating': float(product.average_rating or 0),
+                        'total_reviews': product.review_count or 0,
+                        'stock_quantity': product.stock_quantity,
+                        'status': product.status
+                    }
+                    for product in recent_products
+                ]
             }
             
-            serializer = SellerDashboardSerializer(dashboard_data)
-            return Response(serializer.data)
+            return Response(dashboard_data)
         except SellerProfile.DoesNotExist:
             return Response(
                 {'error': 'Seller profile not found'},

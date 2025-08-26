@@ -6,7 +6,7 @@ import { User, SellerProfile, AuthState } from '../types';
 import { toast } from 'react-hot-toast';
 
 interface AuthStore extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; redirectPath: string }>;
   register: (userData: any) => Promise<boolean>;
   logout: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<boolean>;
@@ -15,6 +15,7 @@ interface AuthStore extends AuthState {
   getSellerProfile: () => Promise<void>;
   clearError: () => void;
   initializeAuth: () => Promise<void>;
+  getRedirectPath: (user: User) => string;
 }
 
 const useAuthStore = create<AuthStore>()(
@@ -26,28 +27,43 @@ const useAuthStore = create<AuthStore>()(
       isLoading: true,
       error: null,
 
+      getRedirectPath: (user: User) => {
+        if (user.is_admin || user.is_staff) {
+          return '/admin';
+        } else if (user.is_seller) {
+          return '/seller/dashboard';
+        } else {
+          return '/';
+        }
+      },
+
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
           const response = await authService.login({ email, password });
           authService.storeUserData(response.user, response.access, response.refresh);
           
-          // Set user and auth but keep loading until seller profile is fetched
+          // Set user and auth
           set({
             user: response.user,
             isAuthenticated: true,
             error: null,
           });
 
-          try {
-            await get().getSellerProfile();
-          } catch (error) {
-            console.log('No seller profile found');
+          // Only fetch seller profile if user is actually a seller
+          if (response.user.is_seller) {
+            try {
+              await get().getSellerProfile();
+            } catch (error) {
+              console.log('No seller profile found');
+            }
           }
 
           set({ isLoading: false });
           toast.success('Login successful!');
-          return true;
+          
+          const redirectPath = get().getRedirectPath(response.user);
+          return { success: true, redirectPath };
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Login failed';
           set({
@@ -57,7 +73,7 @@ const useAuthStore = create<AuthStore>()(
             user: null,
           });
           toast.error(errorMessage);
-          return false;
+          return { success: false, redirectPath: '/login' };
         }
       },
 
@@ -180,7 +196,6 @@ const useAuthStore = create<AuthStore>()(
       },
 
       initializeAuth: async () => {
-        // Keep loading until seller profile fetch (if any) completes
         set({ isLoading: true });
         const storedUser = authService.getStoredUser();
         if (storedUser && authService.isAuthenticated()) {
@@ -189,10 +204,13 @@ const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
           });
 
-          try {
-            await get().getSellerProfile();
-          } catch (error) {
-            console.log('No seller profile found');
+          // Only fetch seller profile if user is actually a seller
+          if (storedUser.is_seller) {
+            try {
+              await get().getSellerProfile();
+            } catch (error) {
+              console.log('No seller profile found');
+            }
           }
 
           set({ isLoading: false });

@@ -9,6 +9,7 @@ export interface User {
   is_active: boolean;
   is_staff?: boolean;
   is_admin?: boolean;
+  is_seller?: boolean;
   date_joined: string;
   last_login?: string;
   avatar?: string;

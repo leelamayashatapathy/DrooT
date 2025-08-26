@@ -21,6 +21,7 @@ import AddProductPage from './pages/seller/AddProductPage';
 import CreateSellerProfilePage from './pages/seller/CreateSellerProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
+import SellerProductsPage from './pages/seller/SellerProductsPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -79,6 +80,11 @@ function App() {
               <Route path="/seller/dashboard" element={
                 <ProtectedRoute requireSeller>
                   <SellerDashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/seller/products" element={
+                <ProtectedRoute requireSeller>
+                  <SellerProductsPage />
                 </ProtectedRoute>
               } />
               <Route path="/seller/products/add" element={

@@ -33,9 +33,10 @@ const LoginPage: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      const success = await login(data.email, data.password);
-      if (success) {
-        navigate(from, { replace: true });
+      const result = await login(data.email, data.password);
+      if (result.success) {
+        // Use the redirect path determined by the auth store based on user role
+        navigate(result.redirectPath, { replace: true });
       }
     } finally {
       setIsLoading(false);

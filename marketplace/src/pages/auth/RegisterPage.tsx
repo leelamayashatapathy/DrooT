@@ -6,10 +6,10 @@ import { Eye, EyeOff, User, Mail, Lock, Phone } from 'lucide-react';
 import { useAuthStore } from '../../store/AuthContext';
 
 interface RegisterForm {
-  first_name: string;
-  last_name: string;
+  name: string;
   email: string;
-  phone_number: string;
+  phone: string;
+  gender: 'Male' | 'Female' | 'Other'
   password: string;
   password_confirm: string;
 }
@@ -69,37 +69,22 @@ const RegisterPage: React.FC = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             {/* Name Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name *
+                  Name *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    {...register('first_name', { required: 'First name is required' })}
+                    {...register('name', { required: 'Name is required' })}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter your first name"
+                    placeholder="Enter your name"
                   />
                 </div>
-                {errors.first_name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.first_name.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name *
-                </label>
-                <input
-                  type="text"
-                  {...register('last_name', { required: 'Last name is required' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter your last name"
-                />
-                {errors.last_name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.last_name.message}</p>
+                {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
                 )}
               </div>
             </div>
@@ -138,16 +123,32 @@ const RegisterPage: React.FC = () => {
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="tel"
-                  {...register('phone_number', { required: 'Phone number is required' })}
+                  {...register('phone', { required: 'Phone number is required' })}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your phone number"
                 />
               </div>
-              {errors.phone_number && (
-                <p className="text-red-500 text-sm mt-1">{errors.phone_number.message}</p>
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
               )}
             </div>
-
+            {/* gender */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gender *
+              </label>
+              <select
+                {...register('gender', { required: 'Gender is required' })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+              {errors.gender && (
+                <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>
+              )}
+            </div>
             {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

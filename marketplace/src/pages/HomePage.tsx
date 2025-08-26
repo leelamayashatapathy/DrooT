@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { 
   Search, 
   ShoppingCart, 
@@ -13,10 +14,15 @@ import {
   Heart,
   Eye
 } from 'lucide-react';
+import productService from '../services/productService';
+import { Product } from '../types';
 
 const HomePage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [dealsOfTheDay, setDealsOfTheDay] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Hero Banner Images
   const bannerImages = [
@@ -34,6 +40,30 @@ const HomePage: React.FC = () => {
     return () => clearInterval(timer);
   }, [bannerImages.length]);
 
+  // Load products from backend
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+      // Load featured products and recent products in parallel
+      const [featuredResponse, recentResponse] = await Promise.all([
+        productService.getProducts({ is_featured: true }, 1),
+        productService.getProducts({}, 1)
+      ]);
+      
+      setFeaturedProducts(featuredResponse.results || []);
+      setDealsOfTheDay(recentResponse.results?.slice(0, 4) || []);
+    } catch (error: any) {
+      console.error('Failed to load products:', error);
+      toast.error('Failed to load products. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Categories with Flipkart-style icons
   const categories = [
     { name: "Electronics", icon: "🔌", count: 1250, color: "bg-blue-500", link: "/products?category=electronics" },
@@ -44,76 +74,6 @@ const HomePage: React.FC = () => {
     { name: "Beauty", icon: "💄", count: 340, color: "bg-red-500", link: "/products?category=beauty" },
     { name: "Automotive", icon: "🚗", count: 280, color: "bg-gray-500", link: "/products?category=automotive" },
     { name: "Toys", icon: "🧸", count: 190, color: "bg-yellow-500", link: "/products?category=toys" }
-  ];
-
-  // Featured Products
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "Samsung Galaxy S23 Ultra",
-      price: 99999,
-      originalPrice: 119999,
-      image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=300&h=300&fit=crop",
-      rating: 4.8,
-      reviewCount: 124,
-      seller: "Samsung Store",
-      discount: 17
-    },
-    {
-      id: 2,
-      name: "Nike Air Max 270",
-      price: 8999,
-      originalPrice: 12999,
-      image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop",
-      rating: 4.6,
-      reviewCount: 89,
-      seller: "Nike Official",
-      discount: 31
-    },
-    {
-      id: 3,
-      name: "Apple MacBook Pro M2",
-      price: 149999,
-      originalPrice: 169999,
-      image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300&h=300&fit=crop",
-      rating: 4.7,
-      reviewCount: 156,
-      seller: "Apple Store",
-      discount: 12
-    },
-    {
-      id: 4,
-      name: "Sony WH-1000XM4",
-      price: 24999,
-      originalPrice: 29999,
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop",
-      rating: 4.9,
-      reviewCount: 67,
-      seller: "Sony Electronics",
-      discount: 17
-    }
-  ];
-
-  // Deals of the Day
-  const dealsOfTheDay = [
-    {
-      id: 5,
-      name: "OnePlus 11 5G",
-      price: 49999,
-      originalPrice: 59999,
-      image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=300&h=300&fit=crop",
-      discount: 17,
-      timeLeft: "23:45:12"
-    },
-    {
-      id: 6,
-      name: "Adidas Ultraboost 22",
-      price: 12999,
-      originalPrice: 18999,
-      image: "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=300&h=300&fit=crop",
-      discount: 32,
-      timeLeft: "18:30:45"
-    }
   ];
 
   const handleSearch = (e: React.FormEvent) => {
@@ -234,43 +194,64 @@ const HomePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Deals of the Day</h2>
-            <Link to="/products?deals=true" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to="/products" className="text-blue-600 hover:text-blue-700 font-medium">
               VIEW ALL
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {dealsOfTheDay.map((deal) => (
-              <div key={deal.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-                <div className="relative">
-                  <img
-                    src={deal.image}
-                    alt={deal.name}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
-                    {deal.discount}% OFF
-                  </div>
-                  <div className="absolute top-2 right-2 bg-black text-white text-xs px-2 py-1 rounded">
-                    {deal.timeLeft}
+          
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 animate-pulse">
+                  <div className="w-full h-48 bg-gray-300"></div>
+                  <div className="p-4">
+                    <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                    <div className="h-6 bg-gray-300 rounded mb-3"></div>
+                    <div className="h-10 bg-gray-300 rounded"></div>
                   </div>
                 </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">{deal.name}</h3>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="text-lg font-bold text-gray-900">
-                      ₹{deal.price.toLocaleString()}
-                    </span>
-                    <span className="text-sm text-gray-500 line-through">
-                      ₹{deal.originalPrice.toLocaleString()}
-                    </span>
+              ))}
+            </div>
+          ) : dealsOfTheDay.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {dealsOfTheDay.map((deal) => (
+                <div key={deal.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+                  <div className="relative">
+                    <img
+                      src={deal.images?.[0]?.image || 'https://via.placeholder.com/300x200?text=No+Image'}
+                      alt={deal.name}
+                      className="w-full h-48 object-cover"
+                    />
+                    {deal.compare_price && deal.compare_price > deal.price && (
+                      <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                        {Math.round(((deal.compare_price - deal.price) / deal.compare_price) * 100)}% OFF
+                      </div>
+                    )}
                   </div>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">
-                    Add to Cart
-                  </button>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 mb-2">{deal.name}</h3>
+                    <div className="flex items-center space-x-2 mb-3">
+                      <span className="text-lg font-bold text-gray-900">
+                        ₹{deal.price.toLocaleString()}
+                      </span>
+                      {deal.compare_price && deal.compare_price > deal.price && (
+                        <span className="text-sm text-gray-500 line-through">
+                          ₹{deal.compare_price.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <button className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">
+                      Add to Cart
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No deals available at the moment.</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -283,74 +264,103 @@ const HomePage: React.FC = () => {
               VIEW ALL
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow border border-gray-200 group">
-                <div className="relative">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {product.discount > 0 && (
-                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
-                      {product.discount}% OFF
+          
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                  <div className="w-full h-48 bg-gray-300"></div>
+                  <div className="p-4">
+                    <div className="flex items-center mb-2">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, j) => (
+                          <div key={j} className="h-4 w-4 bg-gray-300 rounded mr-1"></div>
+                        ))}
+                      </div>
+                      <div className="h-4 bg-gray-300 rounded ml-2 w-8"></div>
                     </div>
-                  )}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="bg-white p-2 rounded-full shadow-md hover:bg-gray-50">
-                      <Heart className="h-4 w-4 text-gray-600" />
-                    </button>
-                  </div>
-                  <div className="absolute top-12 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="bg-white p-2 rounded-full shadow-md hover:bg-gray-50">
-                      <Eye className="h-4 w-4 text-gray-600" />
-                    </button>
+                    <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-300 rounded mb-2 w-3/4"></div>
+                    <div className="h-6 bg-gray-300 rounded mb-3"></div>
+                    <div className="h-10 bg-gray-300 rounded"></div>
                   </div>
                 </div>
-                <div className="p-4">
-                  <div className="flex items-center mb-2">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(product.rating)
-                              ? 'text-yellow-400 fill-current'
-                              : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow border border-gray-200 group">
+                  <div className="relative">
+                    <img
+                      src={product.images?.[0]?.image || 'https://via.placeholder.com/300x200?text=No+Image'}
+                      alt={product.name}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {product.compare_price && product.compare_price > product.price && (
+                      <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                        {Math.round(((product.compare_price - product.price) / product.compare_price) * 100)}% OFF
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="bg-white p-2 rounded-full shadow-md hover:bg-gray-50">
+                        <Heart className="h-4 w-4 text-gray-600" />
+                      </button>
                     </div>
-                    <span className="text-sm text-gray-500 ml-2">
-                      ({product.reviewCount})
-                    </span>
+                    <div className="absolute top-12 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="bg-white p-2 rounded-full shadow-md hover:bg-gray-50">
+                        <Eye className="h-4 w-4 text-gray-600" />
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    by {product.seller}
-                  </p>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold text-gray-900">
-                        ₹{product.price.toLocaleString()}
+                  <div className="p-4">
+                    <div className="flex items-center mb-2">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.floor(product.average_rating || 0)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-500 ml-2">
+                        ({product.review_count || 0})
                       </span>
-                      {product.originalPrice > product.price && (
-                        <span className="text-sm text-gray-500 line-through">
-                          ₹{product.originalPrice.toLocaleString()}
-                        </span>
-                      )}
                     </div>
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-2">
+                      by {product.seller?.business_name || 'Unknown Seller'}
+                    </p>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg font-bold text-gray-900">
+                          ₹{product.price.toLocaleString()}
+                        </span>
+                        {product.compare_price && product.compare_price > product.price && (
+                          <span className="text-sm text-gray-500 line-through">
+                            ₹{product.compare_price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">
+                      Add to Cart
+                    </button>
                   </div>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">
-                    Add to Cart
-                  </button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No featured products available at the moment.</p>
+            </div>
+          )}
         </div>
       </section>
 
