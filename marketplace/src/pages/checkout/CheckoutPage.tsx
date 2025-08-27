@@ -4,6 +4,8 @@ import { toast } from 'react-hot-toast';
 import { useAuthStore } from '../../store/AuthContext';
 import { useCartStore } from '../../store/CartContext';
 import cartService from '../../services/cartService';
+import orderService from '../../services/orderService';
+import notificationService from '../../services/notificationService';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +13,8 @@ const CheckoutPage: React.FC = () => {
   const { items, totalAmount, clearCart } = useCartStore();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
+  const [cartId, setCartId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -33,6 +37,18 @@ const CheckoutPage: React.FC = () => {
       navigate('/cart');
       return;
     }
+
+    // Optionally fetch backend cart to get cart_id
+    (async () => {
+      try {
+        const cart = await cartService.getCart();
+        // @ts-ignore: assume backend returns id field
+        setCartId((cart as any).id || null);
+      } catch (e) {
+        // If no backend cart, we proceed without cartId and let checkout fail gracefully
+        setCartId(null);
+      }
+    })();
   }, [isAuthenticated, items, navigate]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -47,13 +63,14 @@ const CheckoutPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Create order
-      const orderData = {
-        items: items.map(item => ({
-          product: item.product.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
+      if (!cartId) {
+        toast.error('No active cart. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      const checkoutPayload = {
+        cart_id: cartId,
         shipping_address: {
           first_name: formData.firstName,
           last_name: formData.lastName,
@@ -63,15 +80,23 @@ const CheckoutPage: React.FC = () => {
           country: formData.country,
           zip_code: formData.zipCode,
           phone: formData.phone
-        }
+        },
+        payment_method: paymentMethod,
       };
 
-      // In a real app, you would call orderService.createOrder(orderData)
+      const result = await orderService.checkout(checkoutPayload);
+
+      // Send in-app notification (best effort)
+      try {
+        await notificationService.sendTestNotification();
+      } catch {}
+
       toast.success('Order placed successfully!');
       clearCart();
       navigate('/orders');
     } catch (error: any) {
-      toast.error('Checkout failed');
+      const msg = error?.response?.data?.error || 'Checkout failed';
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -198,6 +223,26 @@ const CheckoutPage: React.FC = () => {
                 </div>
               </div>
 
+              <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
+              <div className="space-y-3 mb-6">
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    checked={paymentMethod === 'cod'}
+                    onChange={() => setPaymentMethod('cod')}
+                  />
+                  <span>Cash on Delivery</span>
+                </label>
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    checked={paymentMethod === 'online'}
+                    onChange={() => setPaymentMethod('online')}
+                  />
+                  <span>Online Payment</span>
+                </label>
+              </div>
+
               <button
                 type="submit"
                 disabled={isLoading}
@@ -227,7 +272,7 @@ const CheckoutPage: React.FC = () => {
                         <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                       </div>
                     </div>
-                    <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -235,7 +280,7 @@ const CheckoutPage: React.FC = () => {
               <div className="border-t pt-4">
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total</span>
-                  <span>${totalAmount.toFixed(2)}</span>
+                  <span>₹{totalAmount.toFixed(2)}</span>
                 </div>
               </div>
             </div>

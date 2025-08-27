@@ -286,6 +286,18 @@ class OrderService {
     const response = await api.get(`/orders/${orderId}/rating/`);
     return response.data;
   }
+
+  // Checkout cart into order(s)
+  async checkout(data: {
+    cart_id: number;
+    shipping_address: any;
+    billing_address?: any;
+    payment_method?: string;
+    notes?: string;
+  }): Promise<any> {
+    const response = await api.post('/orders/checkout/', data);
+    return response.data;
+  }
 }
 
 export default new OrderService();
