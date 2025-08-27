@@ -123,7 +123,7 @@ const ProductListPage: React.FC = () => {
               {/* Product Image */}
               <div className="relative">
                 <img
-                  src={product.images[0]?.image || '/placeholder-product.jpg'}
+                  src={product.images?.[0]?.image || '/placeholder-product.jpg'}
                   alt={product.name}
                   className="w-full h-48 object-cover rounded-t-lg"
                 />
@@ -162,11 +162,11 @@ const ProductListPage: React.FC = () => {
                 {/* Price */}
                 <div className="flex items-center mb-3">
                   <span className="text-lg font-semibold text-gray-900">
-                    ₹{product.price.toFixed(2)}
+                     ₹{Number(product.price || 0).toFixed(2)}
                   </span>
                   {product.compare_price && product.compare_price > product.price && (
                     <span className="text-sm text-gray-500 line-through ml-2">
-                      ₹{product.compare_price.toFixed(2)}
+                      ₹{Number(product.compare_price).toFixed(2)}
                     </span>
                   )}
                 </div>

@@ -264,11 +264,11 @@ const HomePage: React.FC = () => {
                     <h3 className="font-semibold text-gray-900 mb-2">{deal.name}</h3>
                     <div className="flex items-center space-x-2 mb-3">
                       <span className="text-lg font-bold text-gray-900">
-                        ₹{deal.price.toLocaleString()}
+                        ₹{Number(deal.price || 0).toLocaleString()}
                       </span>
                       {deal.compare_price && deal.compare_price > deal.price && (
                         <span className="text-sm text-gray-500 line-through">
-                          ₹{deal.compare_price.toLocaleString()}
+                          ₹{Number(deal.compare_price).toLocaleString()}
                         </span>
                       )}
                     </div>

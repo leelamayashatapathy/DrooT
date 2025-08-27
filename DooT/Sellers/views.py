@@ -98,8 +98,7 @@ class SellerDashboardView(APIView):
     
     def get(self, request):
         try:
-            seller_profile = request.user.seller_profile
-            
+            seller_profile = request.user.seller_profile.id
             # Get seller statistics
             total_products = Product.objects.filter(seller=seller_profile).count()
             total_orders = Order.objects.filter(seller=seller_profile).count()
@@ -123,7 +122,6 @@ class SellerDashboardView(APIView):
             recent_products = Product.objects.filter(
                 seller=seller_profile
             ).order_by('-created_at')[:10]
-            
             dashboard_data = {
                 'quick_stats': {
                     'total_products': total_products,
@@ -149,14 +147,13 @@ class SellerDashboardView(APIView):
                         'current_price': float(product.sale_price or product.base_price),
                         'base_price': float(product.base_price),
                         'average_rating': float(product.average_rating or 0),
-                        'total_reviews': product.review_count or 0,
+                        'total_reviews': product.view_count or 0,
                         'stock_quantity': product.stock_quantity,
                         'status': product.status
                     }
                     for product in recent_products
                 ]
             }
-            
             return Response(dashboard_data)
         except SellerProfile.DoesNotExist:
             return Response(
